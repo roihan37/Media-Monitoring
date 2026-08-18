@@ -1,15 +1,31 @@
 import { SeedMention } from "../models/mention.model";
+import { normalizeMention } from "../utils/mention-normalizer";
 
 
 export class MentionService {
 
     static async ingestMentions(
-        mention : SeedMention[]
-    ) : Promise<void> {
-        try {
+        data: SeedMention[]
+    ): Promise<{
+        received: number
+    }> {
 
-        }catch (error) {
-            console.error("Error ingesting mentions:", error);
+        if (!Array.isArray(data)) {
+            throw new Error(
+                "Request body must be an array"
+            )
         }
+
+        const received = data.length
+
+        // NORMALIZE
+        const normalized = data.map((el)=>normalizeMention(el))
+
+        return {
+            received,
+            //   unique: unique.length,
+            //   inserted,
+        };
+
     }
 }

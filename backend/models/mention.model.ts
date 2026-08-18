@@ -8,3 +8,19 @@ export interface SeedMention {
     published_at: string | number | null;
     engagement: number | string;
 }
+
+export interface Mention {
+    id: string;
+    externalId: string;
+
+    source: string;
+    sourceKey: string;
+
+    title: string | null;
+    content: string | null;
+    url: string | null;
+    author: string | null;
+
+    publishedAt: Date | null;
+    engagement: number;
+}
