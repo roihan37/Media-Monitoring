@@ -61,10 +61,31 @@ export class MentionController {
                     limit,
                 }
             );
-
             res.status(200).json(result);
         } catch (error) {
+            console.error("Search error:", error);
 
+            res.status(500).json({ message: "Failed to search mentions", });
         }
     }
+
+    static async getStats(req: Request, res: Response): Promise<void> {
+        try {
+            const groupBy = req.query.group_by;
+
+            if (groupBy !== "source" && groupBy !== "day") {
+                res.status(400).json({ message: "group_by must be either source or day", });
+                return;
+            }
+
+            const result = await MentionService.getStats(groupBy)
+            res.status(200).json(result);
+        } catch (error) {
+            console.error("Stats error:", error);
+
+            res.status(500).json({ message: "Failed to get statistics", });
+        }
+    }
+
+
 } 

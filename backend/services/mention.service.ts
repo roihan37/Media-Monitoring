@@ -78,4 +78,10 @@ export class MentionService {
             filters
         );
     }
+
+    static async getStats(
+        groupBy : 'source' | 'day'
+    ){
+        return MentionRepository.getStats(groupBy)
+    }
 }

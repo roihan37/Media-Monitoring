@@ -20,53 +20,53 @@ export class MentionRepository {
 
                 const result = await client.query(
                     `
-            INSERT INTO mentions (
-              id,
-              external_id,
-              source,
-              source_key,
-              title,
-              content,
-              url,
-              author,
-              published_at,
-              engagement,
-              dedupe_key
-            )
-            VALUES (
-              $1,
-              $2,
-              $3,
-              $4,
-              $5,
-              $6,
-              $7,
-              $8,
-              $9,
-              $10,
-              $11
-            )
-            ON CONFLICT (dedupe_key)
-            DO UPDATE SET
-              engagement = GREATEST(
-                mentions.engagement,
-                EXCLUDED.engagement
-              ),
-              title = COALESCE(
-                mentions.title,
-                EXCLUDED.title
-              ),
-              content = COALESCE(
-                mentions.content,
-                EXCLUDED.content
-              ),
-              author = COALESCE(
-                mentions.author,
-                EXCLUDED.author
-              ),
-              updated_at = NOW()
-            RETURNING (xmax = 0) AS inserted
-            `,
+                    INSERT INTO mentions (
+                    id,
+                    external_id,
+                    source,
+                    source_key,
+                    title,
+                    content,
+                    url,
+                    author,
+                    published_at,
+                    engagement,
+                    dedupe_key
+                    )
+                    VALUES (
+                    $1,
+                    $2,
+                    $3,
+                    $4,
+                    $5,
+                    $6,
+                    $7,
+                    $8,
+                    $9,
+                    $10,
+                    $11
+                    )
+                    ON CONFLICT (dedupe_key)
+                    DO UPDATE SET
+                    engagement = GREATEST(
+                        mentions.engagement,
+                        EXCLUDED.engagement
+                    ),
+                    title = COALESCE(
+                        mentions.title,
+                        EXCLUDED.title
+                    ),
+                    content = COALESCE(
+                        mentions.content,
+                        EXCLUDED.content
+                    ),
+                    author = COALESCE(
+                        mentions.author,
+                        EXCLUDED.author
+                    ),
+                    updated_at = NOW()
+                    RETURNING (xmax = 0) AS inserted
+                    `,
                     [
                         mention.id,
                         mention.externalId,
@@ -222,5 +222,34 @@ export class MentionRepository {
             },
         };
 
+    }
+
+    static async getStats(
+        groupBy: "source" | "day"
+    ){
+        if (groupBy === "source") {
+            const result = await pool.query(`
+                SELECT source, COUNT(*)::integer AS count
+                FROM mentions
+                GROUP BY source
+                ORDER BY count DESC, source ASC
+            `);
+            return result.rows;
+        }
+
+        if (groupBy === "day") {
+            const result = await pool.query(`
+                SELECT DATE(published_at) AS day, COUNT(*)::integer AS count
+                FROM mentions
+                WHERE published_at IS NOT NULL
+                GROUP BY DATE(published_at)
+                ORDER BY day ASC
+            `);
+
+            return result.rows;
+        }
+        throw new Error(
+            "group_by must be either source or day"
+        );
     }
 }
