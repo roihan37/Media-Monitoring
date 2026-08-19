@@ -1,4 +1,5 @@
 import { Mention, SeedMention } from "../models/mention.model";
+import { deduplicateMentions } from "../utils/duplicate-detector";
 import { normalizeMention } from "../utils/mention-normalizer";
 
 
@@ -20,8 +21,10 @@ export class MentionService {
 
         // NORMALIZE
         const normalized = data.map((el) => normalizeMention(el))
-
+        // Canonicalize Source
         const canonicalized = this.canonicalizeSources(normalized);
+        // handle duplication
+        const unique = deduplicateMentions(canonicalized);
 
         return {
             received,
