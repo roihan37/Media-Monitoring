@@ -1,4 +1,4 @@
-import { SeedMention } from "../models/mention.model";
+import { Mention, SeedMention } from "../models/mention.model";
 import { normalizeMention } from "../utils/mention-normalizer";
 
 
@@ -19,7 +19,9 @@ export class MentionService {
         const received = data.length
 
         // NORMALIZE
-        const normalized = data.map((el)=>normalizeMention(el))
+        const normalized = data.map((el) => normalizeMention(el))
+
+        const canonicalized = this.canonicalizeSources(normalized);
 
         return {
             received,
@@ -27,5 +29,31 @@ export class MentionService {
             //   inserted,
         };
 
+    }
+
+    private static canonicalizeSources(
+        mentions: Mention[]
+    ): Mention[] {
+
+        const canonicalSources = new Map<string, string>();
+
+        return mentions.map((mention) => {
+            // CHECT EXIST OR NOT
+            const existing = canonicalSources.get(mention.sourceKey);
+
+            if (existing) {
+                return {
+                    ...mention,
+                    source: existing,
+                };
+            }
+
+            canonicalSources.set(
+                mention.sourceKey,
+                mention.source
+            );
+
+            return mention;
+        });
     }
 }

@@ -17,6 +17,7 @@ export function normalizeMention(
         url : normalizeUrl(mention.url),
         author: normalizeAuthor(mention.author),
         publishedAt: normalizePublishedAt(mention.published_at),
+        engagement : normalizeEngagement(mention.engagement)
     };
 }
 
@@ -131,29 +132,36 @@ function normalizePublishedAt(
     return null;
   }
 
+  // Handle Unix timestamp.
   if (typeof value === "number") {
-    // to Date and change from milisecond
+    // default javascript milliseconds
     const date = new Date(value * 1000);
-
+    // check valid
     if (Number.isNaN(date.getTime())) {
       throw new Error(
         `Invalid published_at timestamp: ${value}`
       );
     }
-
     return date;
   }
 
+  // "19/08/2026"
   const cleaned = value.trim();
-
   if (!cleaned) {
     return null;
   }
 
-  
   const dateOnlyMatch = cleaned.match(
     /^(\d{2})\/(\d{2})\/(\d{4})$/
   );
+  /**
+       * [
+      "19/08/2026",
+      "19",
+      "08",
+      "2026"
+    ]
+   */
 
   if (dateOnlyMatch) {
     const [, day, month, year] =
@@ -168,7 +176,6 @@ function normalizePublishedAt(
         `Invalid published_at date: ${value}`
       );
     }
-
     return date;
   }
 
@@ -181,4 +188,33 @@ function normalizePublishedAt(
   }
 
   return date;
+}
+
+// ENGAGEMENT
+function normalizeEngagement(
+  engagement : number | string
+): number{
+  // check number and valid
+  if (typeof engagement === "number") {
+    if (!Number.isFinite(engagement)) {
+      throw new Error(
+        `Invalid engagement value: ${engagement}`
+      );
+    }
+    return engagement;
+  }
+
+  // delete coma and space
+  const cleaned = engagement
+    .replace(/,/g, "")
+    .trim();
+
+  const value = Number(cleaned);
+  if (!Number.isFinite(value)) {
+    throw new Error(
+      `Invalid engagement value: ${engagement}`
+    );
+  }
+
+  return value;
 }
