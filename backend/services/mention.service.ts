@@ -1,4 +1,5 @@
 import { Mention, SeedMention } from "../models/mention.model";
+import { MentionRepository } from "../repositories/mention.repository";
 import { deduplicateMentions } from "../utils/duplicate-detector";
 import { normalizeMention } from "../utils/mention-normalizer";
 
@@ -9,11 +10,13 @@ export class MentionService {
         data: SeedMention[]
     ): Promise<{
         received: number
+        unique: number
+        inserted: number
     }> {
 
         if (!Array.isArray(data)) {
             throw new Error(
-                "Request body must be an array"
+                "MustBeArray"
             )
         }
 
@@ -26,10 +29,11 @@ export class MentionService {
         // handle duplication
         const unique = deduplicateMentions(canonicalized);
 
+        const inserted = await MentionRepository.upsertMany(unique);
         return {
             received,
-            //   unique: unique.length,
-            //   inserted,
+            unique: unique.length,
+            inserted,
         };
 
     }

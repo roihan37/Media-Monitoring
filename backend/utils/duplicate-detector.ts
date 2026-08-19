@@ -40,7 +40,7 @@ export function deduplicateMentions(
 }
 
 // Handle duplicate
-function getDuplicateKey(
+export function getDuplicateKey(
     mention: Mention
 ): string {
     const url = normalizeUrlForComparison(mention.url);
