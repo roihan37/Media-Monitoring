@@ -24,3 +24,12 @@ export interface Mention {
     publishedAt: Date | null;
     engagement: number;
 }
+
+export interface MentionSearchFilters {
+  q?: string;
+  source?: string;
+  from?: string;
+  to?: string;
+  page: number;
+  limit: number;
+}

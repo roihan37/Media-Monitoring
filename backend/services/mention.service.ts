@@ -63,4 +63,19 @@ export class MentionService {
             return mention;
         });
     }
+
+    static async searchMentions(
+        filters: {
+            q?: string;
+            source?: string;
+            from?: string;
+            to?: string;
+            page: number;
+            limit: number;
+        }
+    ) {
+        return MentionRepository.search(
+            filters
+        );
+    }
 }

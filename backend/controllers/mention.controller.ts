@@ -23,7 +23,46 @@ export class MentionController {
 
     static async searchMentions(req: Request, res: Response): Promise<void> {
         try {
+            const page = Number(req.query.page ?? 1)
+            const limit = Number(req.query.limit ?? 20)
 
+            // bukan bilangan bulat
+            if (!Number.isInteger(page) || page < 1) {
+                res.status(400).json({ message: "page must be a positive integer", });
+                return;
+            }
+
+            if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+                res.status(400).json({
+                    message: "limit must be between 1 and 100",
+                });
+                return;
+            }
+
+            const result = await MentionService.searchMentions(
+                {
+                    q: typeof req.query.q === "string"
+                        ? req.query.q
+                        : undefined,
+
+                    source: typeof req.query.source === "string"
+                        ? req.query.source
+                        : undefined,
+
+                    from: typeof req.query.from === "string"
+                        ? req.query.from
+                        : undefined,
+
+                    to: typeof req.query.to === "string"
+                        ? req.query.to
+                        : undefined,
+
+                    page,
+                    limit,
+                }
+            );
+
+            res.status(200).json(result);
         } catch (error) {
 
         }
