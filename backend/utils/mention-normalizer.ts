@@ -22,7 +22,7 @@ export function normalizeMention(
 }
 
 // SOURCE
-function normalizeSource(source: string): {
+export function normalizeSource(source: string): {
     name: string,
     key: string
 } {
@@ -44,7 +44,7 @@ function normalizeSource(source: string): {
             /\b\w/g,
             (char) => char.toUpperCase()
         );
-
+        
     return {
         name,
         key,
@@ -52,7 +52,7 @@ function normalizeSource(source: string): {
 }
 
 // TITLE
-function normalizeTitle(
+export function normalizeTitle(
     title: string | null
 ): string | null {
 
@@ -68,7 +68,7 @@ function normalizeTitle(
 }
 
 // CONTENT
-function normalizeContent(
+export function normalizeContent(
     content: string | null
 ): string | null {
 
@@ -91,7 +91,7 @@ function normalizeContent(
 }
 
 //  URL
-function normalizeUrl(
+export function normalizeUrl(
   url: string | null
 ): string | null {
 
@@ -109,7 +109,7 @@ function normalizeUrl(
 }
 
 // AUTHOR
-function normalizeAuthor(
+export function normalizeAuthor(
   author: string | null
 ): string | null {
   if (author === null) {
@@ -125,7 +125,7 @@ function normalizeAuthor(
 
 // PUBLISH
 
-function normalizePublishedAt(
+export function normalizePublishedAt(
   value: string | number | null
 ): Date | null {
   if (value === null) {
@@ -191,7 +191,7 @@ function normalizePublishedAt(
 }
 
 // ENGAGEMENT
-function normalizeEngagement(
+export function normalizeEngagement(
   engagement : number | string
 ): number{
   // check number and valid
