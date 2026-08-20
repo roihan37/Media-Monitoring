@@ -39,6 +39,7 @@ export class MentionController {
                 return;
             }
 
+            
             const result = await MentionService.searchMentions(
                 {
                     q: typeof req.query.q === "string"

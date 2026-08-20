@@ -8,16 +8,16 @@ describe("Mention Normalizer", ()=>{
     describe("normalizeSource", ()=>{
         it("should normalize source names consistently", ()=>{
             expect(normalizeSource("The Star"))
-                .toBe("The Star");
+                .toEqual({name : "The Star", key: "thestar"});
 
             expect(normalizeSource("the-star"))
-                .toBe("The Star");
+                .toEqual({name : "The Star", key: "thestar"});
 
             expect(normalizeSource("THE STAR"))
-                .toBe("The Star");
+                .toEqual({name : "The Star", key: "thestar"});
 
             expect(normalizeSource(" thestar "))
-                .toBe("The Star");
+                .toEqual({ name: 'Thestar', key: 'thestar' });
         })
     })
 
