@@ -1,4 +1,4 @@
-import app from "../app";
+import app from "../src/app";
 import request from "supertest";
 import {
     describe,
@@ -6,9 +6,9 @@ import {
     it,
     vi,
 } from "vitest";
+import { MentionRepository } from "../src/repositories/mention.repository";
+import { MentionService } from "../src/services/mention.service";
 
-import { MentionService } from "../services/mention.service";
-import { MentionRepository } from "../repositories/mention.repository";
 
 
 /**
@@ -17,7 +17,7 @@ import { MentionRepository } from "../repositories/mention.repository";
  * requiring a real database.
  */
 vi.mock(
-    "../repositories/mention.repository",
+    "../src/repositories/mention.repository",
     () => ({
         MentionRepository: {
             upsertMany: vi.fn(),

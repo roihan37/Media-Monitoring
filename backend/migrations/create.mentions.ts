@@ -1,4 +1,4 @@
-import pool from "../config/connection";
+import pool from "../src/config/connection";
 
 const query = `
 CREATE TABLE IF NOT EXISTS mentions (

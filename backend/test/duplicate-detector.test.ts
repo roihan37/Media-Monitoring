@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
     getDuplicateKey,
     deduplicateMentions,
-} from "../utils/duplicate-detector";
+} from "../src/utils/duplicate-detector";
 import { randomUUID } from "node:crypto";
 
 describe("Duplicate Detector", () => {

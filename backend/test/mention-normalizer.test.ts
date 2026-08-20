@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeContent, normalizeEngagement, normalizeSource } from "../utils/mention-normalizer";
+import { normalizeContent, normalizeEngagement, normalizeSource } from "../src/utils/mention-normalizer";
 
 
 

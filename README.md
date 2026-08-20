@@ -1,5 +1,4 @@
 
-
 # Media Monitoring API
 
 Backend service untuk mengelola data media mentions.
@@ -48,7 +47,7 @@ Clone repository:
 
 ```bash
 git clone <YOUR_REPOSITORY_URL>
-cd media-monitoring
+cd backend
 ````
 
 Install dependencies:
@@ -70,7 +69,7 @@ PORT=3000
 
 Update the database username, password, and database name according to your PostgreSQL configuration.
 
-> Do not commit `.env` to the repository.
+> Do not commit `.env` to the repository. Use `.env.example` as a template.
 
 ---
 
@@ -78,7 +77,7 @@ Update the database username, password, and database name according to your Post
 
 This project uses PostgreSQL.
 
-The database schema is created through the migration:
+The database schema is created through the committed migration:
 
 ```text
 migrations/
@@ -105,39 +104,47 @@ mentions
 
 Important fields:
 
-| Field          | Description                              |
-| -------------- | ---------------------------------------- |
-| `id`           | Internal UUID primary key                |
-| `external_id`  | ID from the original source              |
-| `source`       | Normalized source name                   |
-| `source_key`   | Normalized key used for source filtering |
-| `title`        | Mention title                            |
-| `content`      | Cleaned mention content                  |
-| `url`          | Original mention URL                     |
-| `author`       | Mention author                           |
-| `published_at` | Publication date and time                |
-| `engagement`   | Normalized engagement value              |
-| `dedupe_key`   | Unique key used to prevent duplicates    |
-| `created_at`   | Record creation time                     |
-| `updated_at`   | Record update time                       |
+| Field          | Description                                            |
+| -------------- | ------------------------------------------------------ |
+| `id`           | Internal UUID primary key                              |
+| `external_id`  | ID from the original source                            |
+| `source`       | Normalized source name                                 |
+| `source_key`   | Canonical key used for source comparison and filtering |
+| `title`        | Mention title                                          |
+| `content`      | Cleaned mention content                                |
+| `url`          | Original mention URL                                   |
+| `author`       | Mention author                                         |
+| `published_at` | Publication date and time                              |
+| `engagement`   | Normalized engagement value                            |
+| `dedupe_key`   | Unique key used to prevent duplicate records           |
+| `created_at`   | Record creation time                                   |
+| `updated_at`   | Record update time                                     |
 
 ### Why `source_key`?
 
-Source names may have different formats:
+Source names may have different formatting or casing.
+
+For example:
 
 ```text
 "The Star"
-"the-star"
+"THE STAR"
 " THE STAR "
 ```
 
-They are normalized into the same key:
+are normalized consistently for comparison and filtering.
+
+The canonical comparison key removes differences in casing, surrounding whitespace, and separators.
+
+For example:
 
 ```text
-thestar
+"The Star" → "thestar"
+"THE STAR" → "thestar"
+"the-star" → "thestar"
 ```
 
-This makes source filtering consistent.
+`source_key` is used for comparison and filtering, while `source` is kept as the normalized display value.
 
 ### Why `dedupe_key`?
 
@@ -149,7 +156,7 @@ It also has a database-level `UNIQUE` constraint:
 dedupe_key TEXT NOT NULL UNIQUE
 ```
 
-This prevents the same mention from being inserted multiple times.
+This provides database-level protection against inserting the same mention multiple times.
 
 ---
 
@@ -173,18 +180,27 @@ When a usable URL is available:
 dedupe_key = url:<normalized_url>
 ```
 
-If a URL is not available, a deterministic fallback key is generated from the available normalized fields.
+For example:
+
+```text
+https://example.com/article
+https://example.com/article/
+```
+
+are normalized consistently before comparison.
+
+If a usable URL is not available, a deterministic fallback key is generated from the available normalized fields.
 
 Duplicates are checked in two places:
 
 1. Application level
 2. Database level
 
-The application removes duplicates inside the same request before inserting them.
+The application removes duplicates within the same request before sending records to the repository.
 
 The database uses the `UNIQUE` constraint and PostgreSQL conflict handling as the final protection.
 
-This makes the ingestion endpoint idempotent, meaning sending the same data again does not continuously create duplicate rows.
+This makes the ingestion endpoint idempotent, meaning sending the same payload multiple times does not continuously create duplicate rows.
 
 ---
 
@@ -194,21 +210,29 @@ The input data contains inconsistent formats, so data is normalized before being
 
 ### Source
 
-Whitespace, separators, and letter casing are normalized.
+Source values are trimmed and normalized for consistent comparison.
 
-Example:
+Examples:
 
 ```text
 "The Star"
-"the-star"
+"THE STAR"
 " THE STAR "
 ```
 
 are treated consistently.
 
+A canonical `source_key` is generated for comparison and filtering.
+
+### Title
+
+Titles are trimmed and normalized where required for comparison.
+
+Empty titles are stored as `NULL`.
+
 ### Engagement
 
-String values are converted to integers.
+String values containing comma separators are converted to integers.
 
 ```text
 "1,204" → 1204
@@ -236,7 +260,7 @@ becomes:
 Hello world
 ```
 
-This also prevents HTML/script tags from being stored as content.
+HTML and script tags are not stored as part of the cleaned content.
 
 ---
 
@@ -251,7 +275,11 @@ POST /internal/mentions/bulk
 Content-Type: application/json
 ```
 
-Example body:
+The endpoint accepts an array of mention records through the request body.
+
+The provided `seed_mentions.json` file contains the sample data used to test this endpoint.
+
+### Example body
 
 ```json
 [
@@ -268,7 +296,21 @@ Example body:
 ]
 ```
 
-Example response:
+### Using the provided seed data
+
+From the project root:
+
+```bash
+curl -X POST http://localhost:3000/internal/mentions/bulk \
+  -H "Content-Type: application/json" \
+  --data @seed_mentions.json
+```
+
+The `seed_mentions.json` file is used as a sample request payload. The API receives the JSON data through `req.body`, normalizes the records, applies duplicate detection, and stores the resulting records in PostgreSQL.
+
+The backend does not depend on reading `seed_mentions.json` directly during the request.
+
+### Example response
 
 ```json
 {
@@ -336,6 +378,8 @@ Results are sorted by:
 published_at DESC NULLS LAST
 id DESC
 ```
+
+This provides deterministic ordering when multiple records have the same publication date.
 
 ---
 
@@ -409,14 +453,16 @@ CREATE INDEX IF NOT EXISTS idx_mentions_url
     ON mentions(url);
 ```
 
-Indexes are used to make frequently used searches and filters faster.
+Indexes are used to support frequently used searches and filters.
 
 For example:
 
 * `source_key` → source filtering
-* `published_at` → date filtering and statistics
+* `published_at` → date filtering and ordering
 * `external_id` → lookup by external ID
 * `url` → URL lookup
+
+The `dedupe_key` also has a unique constraint to provide database-level duplicate protection.
 
 ---
 
@@ -433,10 +479,13 @@ media-monitoring/
 ├── migrations/
 │   └── create.mentions.ts
 │
+├── models/
+│   └── ...
+│
 ├── repositories/
 │   └── mention.repository.ts
 │
-├── routes/
+├── router/
 │   └── mention.routes.ts
 │
 ├── services/
@@ -451,35 +500,57 @@ media-monitoring/
 │   ├── duplicate-detector.test.ts
 │   └── mention.service.test.ts
 │
+├── seed_mentions.json
 ├── app.ts
 ├── server.ts
 ├── package.json
+├── package-lock.json
 ├── tsconfig.json
-├── .env
+├── .env.example
 └── README.md
 ```
 
 ### Folder Responsibilities
 
-**Routes**
+**Config**
 
-Defines API endpoints.
+Contains application and database configuration.
 
 **Controllers**
 
 Handles HTTP requests and responses.
 
-**Services**
+**Models**
 
-Contains application logic such as normalization and duplicate detection.
+Contains data-related types or models.
 
 **Repositories**
 
-Handles PostgreSQL queries.
+Handles PostgreSQL queries and database operations.
+
+**Router**
+
+Defines API routes and connects them to controllers.
+
+**Services**
+
+Contains application logic such as normalization, ingestion, and duplicate detection.
 
 **Utils**
 
 Contains reusable helper functions.
+
+**Migrations**
+
+Contains the committed database schema migration.
+
+**Test**
+
+Contains unit and API tests.
+
+**seed_mentions.json**
+
+Contains the sample mention data provided for testing the bulk ingestion endpoint.
 
 ---
 
@@ -506,6 +577,8 @@ npm run migrate
 
 ### 4. Start server
 
+For development:
+
 ```bash
 npm run dev
 ```
@@ -514,6 +587,13 @@ The API will run at:
 
 ```text
 http://localhost:3000
+```
+
+For a production-style run:
+
+```bash
+npm run build
+npm start
 ```
 
 ---
@@ -547,9 +627,15 @@ The tests cover:
 
 # Testing with Seed Data
 
-The provided `seed_mentions.json` can be used to test bulk ingestion.
+The provided `seed_mentions.json` is stored in the project root and can be used as the request body for bulk ingestion.
 
-Example using curl:
+### 1. Run the server
+
+```bash
+npm run dev
+```
+
+### 2. Send the seed data
 
 ```bash
 curl -X POST http://localhost:3000/internal/mentions/bulk \
@@ -557,17 +643,27 @@ curl -X POST http://localhost:3000/internal/mentions/bulk \
   --data @seed_mentions.json
 ```
 
-Then search the inserted data:
+### 3. Search the inserted data
 
 ```bash
 curl "http://localhost:3000/mentions?source=The%20Star"
 ```
 
-Statistics:
+### 4. Get statistics
+
+By source:
 
 ```bash
 curl "http://localhost:3000/mentions/stats?group_by=source"
 ```
+
+By day:
+
+```bash
+curl "http://localhost:3000/mentions/stats?group_by=day"
+```
+
+Sending the same `seed_mentions.json` payload again should not continuously create duplicate rows.
 
 ---
 
@@ -575,14 +671,16 @@ curl "http://localhost:3000/mentions/stats?group_by=source"
 
 The following implementation decisions were made:
 
-1. URL is the primary duplicate identifier when available.
-2. Records without a usable URL use a deterministic fallback key.
-3. Missing or invalid publication dates are stored as `NULL`.
-4. Engagement values such as `"1,204"` are converted to `1204`.
-5. Source names are normalized before storage and filtering.
-6. Search keywords use case-insensitive matching.
-7. The `to` date is inclusive.
-8. Search results are sorted by publication date in descending order.
+1. URL is the primary duplicate identifier when a usable URL is available.
+2. URLs are normalized before duplicate comparison.
+3. Records without a usable URL use a deterministic fallback key.
+4. Missing or invalid publication dates are stored as `NULL`.
+5. Engagement values such as `"1,204"` are converted to `1204`.
+6. Source names are normalized before storage and filtering.
+7. Search keywords use case-insensitive matching.
+8. The `to` date is inclusive.
+9. Search results are sorted by publication date in descending order with `id` as a secondary sort key.
+10. The provided `seed_mentions.json` is treated as sample input for the bulk ingestion endpoint and is not read directly by the backend during ingestion.
 
 ---
 
@@ -590,15 +688,31 @@ The following implementation decisions were made:
 
 ### URL-based duplicate detection
 
-URL is used as the primary identifier because it is more stable than title text.
+URL is used as the primary identifier because it is more stable than title text for identifying the same published resource.
 
-The limitation is that the same content with different URLs may not be detected as a duplicate.
+The limitation is that the same content published under different URLs may not be detected as a duplicate.
 
 ### Application + database deduplication
 
-Duplicates are removed before insertion to reduce unnecessary database operations.
+Duplicates are removed before insertion to avoid unnecessary database operations.
 
-The database `UNIQUE` constraint provides an additional layer of protection.
+The database `UNIQUE` constraint provides an additional layer of protection against duplicate records.
+
+### Source normalization
+
+A canonical source key is generated by normalizing formatting differences such as whitespace, casing, and separators.
+
+This helps values such as:
+
+```text
+"The Star"
+"THE STAR"
+"the-star"
+```
+
+produce the same comparison key.
+
+The implementation does not use fuzzy matching because similar-looking source names may represent different entities.
 
 ### PostgreSQL
 
@@ -650,3 +764,4 @@ AI tools were used as a development aid for:
 
 All implementation decisions and submitted code were reviewed and adapted to the assessment requirements.
 
+````
