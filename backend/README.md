@@ -622,7 +622,7 @@ The following are not included because they are not required for this assessment
 
 # Development Time
 
-Approximately **[XX hours] across [X sessions]**.
+Approximately **11 hours across 4 sessions**.
 
 ---
 
